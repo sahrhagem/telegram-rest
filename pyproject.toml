@@ -1,0 +1,23 @@
+[project]
+name = "telegram-rest"
+version = "0.1.0"
+description = "REST API for telegram to send logs or other messages with POST request"
+authors = [
+    {name = "Malte Sahrhage"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "telethon (>=1.39.0,<2.0.0)",
+    "flask (>=3.1.0,<4.0.0)",
+    "dotenv (>=0.9.9,<0.10.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+
