@@ -116,6 +116,34 @@ def check_date(message):
     date = date.strftime('%Y-%m-%dT%H:%M:%S')    
     return(date)
 
+def check_mid(message):
+    mid = message.id
+
+    if message.message:
+        msg_text = message.message
+        if re.search("MID",msg_text):
+            lines = msg_text.splitlines()
+            for line in lines:
+                if re.search("^MID",line):
+                    mid = re.sub("^MID:","",line).strip()
+                    return(mid)
+    return(mid)
+
+
+def check_chat_id(message):
+    cid = message.peer_id.channel_id if message.peer_id else None
+
+    if message.message:
+        msg_text = message.message
+        if re.search("CID",msg_text):
+            lines = msg_text.splitlines()
+            for line in lines:
+                if re.search("^CID",line):
+                    cid = re.sub("^CID:","",line).strip()
+                    return(cid)
+    return(cid)
+
+
 async def get_message_func(channel_id,message_id):
     async with client:
         try:
@@ -130,6 +158,7 @@ async def get_message_func(channel_id,message_id):
             if(message):
                 print(f"Message received successfully! ({message.id} in {message.chat_id})")
 
+            message.id = check_mid(message)
             if message:
                 msg_dict = {
                     "id": message.id,
@@ -140,7 +169,7 @@ async def get_message_func(channel_id,message_id):
                     "mentioned": message.mentioned,
                     "media": None,  # Convert media to string or handle separately
                     "sender_id": message.from_id.user_id if message.from_id else None,
-                    "chat_id": message.peer_id.channel_id if message.peer_id else None,
+                    "chat_id": check_chat_id(message),
                     "reply_to": message.reply_to.reply_to_message_id if message.reply_to else None
                 }
 
@@ -324,7 +353,11 @@ def send_message():
     message = json.loads(data['message'])
     message_text = message['message']['message']
     message_id = message['message']['id']
-    message["message"]["message"] = f"{message_text}\nMID: {message_id}"
+    chat_id = message['message']['chat_id']
+    if not "MID" in message_text:
+        message["message"]["message"] = f"{message_text}\nMID: {message_id}"
+    if not "CID" in message_text:
+        message["message"]["message"] = f"{message_text}\nCID: {chat_id}"
     print(channel_id)
 
 
