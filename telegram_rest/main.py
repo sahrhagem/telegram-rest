@@ -357,7 +357,7 @@ def send_message():
     if not "MID" in message_text:
         message["message"]["message"] = f"{message_text}\nMID: {message_id}"
     if not "CID" in message_text:
-        message["message"]["message"] = f"{message_text}\nCID: {chat_id}"
+        message["message"]["message"] = f"{message["message"]["message"]}\nCID: {chat_id}"
     print(channel_id)
 
 
