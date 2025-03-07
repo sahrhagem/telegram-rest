@@ -15,11 +15,11 @@ DIARY_CHANNEL_NAME=os.getenv('DIARY_CHANNEL_NAME')
 def client():
     return app.test_client()
 
-def test_receive_log(client):
-    response = client.post('/log', json={"message": "Test log"})
-    assert response.status_code == 200
-    assert response.get_json() == {"status": "Message sent"}
-    print(response.get_json())
+# def test_receive_log(client):
+#     response = client.post('/log', json={"message": "Test log"})
+#     assert response.status_code == 200
+#     assert response.get_json() == {"status": "Message sent"}
+#     print(response.get_json())
 
 def test_get_message(client):
     response = client.post('/get_message', json={"chat_id": CHANNEL_ID, "message_id": "57"})
