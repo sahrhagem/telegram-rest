@@ -209,7 +209,7 @@ async def get_messages_from_reaction(channel_id,reaction):
 
 
             message_array = []
-            async for message in client.iter_messages(entity,reverse=False, limit=50):
+            async for message in client.iter_messages(entity,reverse=False, limit=200):
                 if message.reactions:
                     for reaction_instance in message.reactions.results:                          
                         if reaction_instance.reaction.emoticon == reaction:
