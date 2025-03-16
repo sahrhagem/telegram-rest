@@ -92,8 +92,6 @@ def base64_to_image(base64_string, output_filename):
 def check_date(message):
     date = message.date
     
-
-
     # Extract and convert timestamp
     utc_time = datetime.strptime(date.isoformat(), "%Y-%m-%dT%H:%M:%S+00:00")
 
@@ -225,6 +223,37 @@ async def get_messages_from_reaction(channel_id,reaction):
         except ValueError as e:
             print(f"Error: {e}")
 
+async def check_channel(chat_id):
+    counter = 0
+    async with client:
+        try:
+            dialogs = await client.get_dialogs()
+            # Print chats
+            for chat in dialogs:
+                if chat.id==chat_id:
+                    chat_id = chat.id
+            entity = await client.get_entity(chat_id)  # Force fetching the entity
+            print(f"Testing Date and Time for: {chat_id}")
+            async for message in client.iter_messages(entity,reverse=False, limit=100):
+                if message.message and ("Time" not in message.message or "Date" not in message.message):
+                    print(f"No Date found for: {message.id}")
+                    date = check_date(message)
+                    date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
+
+                    msg = message.message
+                    if not "Date:" in message.message:
+                        date_str = date.strftime('%Y-%m-%d')
+                        msg = msg + f"\nDate: {date_str}"
+                    if not "Time:" in message.message:
+                        time = date.strftime('%H:%M')
+                        msg = msg + f"\nTime: {time}"
+                    #print(f"Changed msesage to: {msg}")                        
+                    await client.edit_message(chat_id,message.id,msg)
+                    counter = counter+1
+            
+        except ValueError as e:
+            print(f"Error: {e}")
+        return(counter)
 
 async def get_chat_id_from_name_func(channel_name):
     async with client:
@@ -363,6 +392,20 @@ def send_message():
 
     message = loop.run_until_complete(send_message_func(channel_id,message["message"]))
     return jsonify({"status": "Message sent", "time_stamp": datetime.now(pytz.timezone('Europe/Berlin')).isoformat(),"message": message}), 200
+
+@app.route('/check', methods=['POST'])
+def check():
+    """API endpoint to receive logs and forward to Telegram."""
+    data = request.get_json()
+    
+    if not data or 'chat_id' not in data:
+        return jsonify({"error": "Invalid request"}), 400
+
+    chat_id = int(data['chat_id'])
+
+    counter = loop.run_until_complete(check_channel(chat_id))
+
+    return jsonify({"status": f"Date and Time added: {counter} messages"}), 200
 
 
 if __name__ == '__main__':

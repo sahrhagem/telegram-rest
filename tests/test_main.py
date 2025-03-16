@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 CHANNEL_ID = os.getenv('CHANNEL_ID')
+DIARY_CHANNEL=os.getenv('DIARY_CHANNEL')
 DIARY_CHANNEL_NAME=os.getenv('DIARY_CHANNEL_NAME')
 
 
@@ -54,4 +55,9 @@ def test_get_messages_from_reaction(client):
     response_json = response.get_json()
     chat_id = response_json["chat_id"]
     print(f"Chat ID: {chat_id}")
+
+def test_check_channel(client):
+    response = client.post('/check', json={"chat_id": DIARY_CHANNEL})
+    assert response.status_code == 200
+    print(response.get_json())    
 
