@@ -8,7 +8,10 @@ import sqlite3
 import json
 import base64
 import re
+import requests
 from datetime import datetime
+from bs4 import BeautifulSoup
+import csv
 
 
 # Load environment variables
@@ -38,6 +41,46 @@ asyncio.set_event_loop(loop)
 # Initialize Telethon client
 client = TelegramClient(SESSION_FILE, API_ID, API_HASH)
 
+
+def edit_podcast(message):
+    msg = message
+    msg = msg.replace("[",'+Podcast\nTitle: ', 1)
+    msg = msg.replace("]",'\nFolge:', 1)
+    msg = msg.replace("https:",'Link: https:', 1)
+    msg = msg.replace("http:",'Link: http:', 1)
+    msg = msg.replace("via @PodcastAddict",'', 1)
+    if re.search("https:",msg):
+        try:
+            msg = msg + "\n" + podcast_text(msg)
+        except:
+            print("URL Not working") 
+    return(msg)
+
+def podcast_text(message):
+    # Compile a regex pattern to match URLs
+    url_pattern = r'(https?://[^\s]+)'
+
+    # Find all URLs in the text
+    urls = re.findall(url_pattern, message)
+    url = str(urls[0])
+
+    response = requests.get(url)
+    html = response.text
+
+    soup = BeautifulSoup(html, 'html.parser')
+    description_element = soup.find(id='episode_body')
+    description = description_element.text
+    description = description.strip()
+
+    return(description)
+
+def replace_words(msg):
+    with open('meta/delete_strings.txt') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader:
+            word = str(row[0])
+            msg = msg.replace(word,"").strip()
+    return(msg)
 
 async def send_log(message):
     async with client:
@@ -234,23 +277,34 @@ async def check_channel(chat_id):
                     chat_id = chat.id
             entity = await client.get_entity(chat_id)  # Force fetching the entity
             print(f"Testing Date and Time for: {chat_id}")
-            async for message in client.iter_messages(entity,reverse=False, limit=100):
-                if message.message and ("Time" not in message.message or "Date" not in message.message):
-                    print(f"No Date found for: {message.id}")
-                    date = check_date(message)
-                    date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
-
-                    msg = message.message
-                    if not "Date:" in message.message:
-                        date_str = date.strftime('%Y-%m-%d')
-                        msg = msg + f"\nDate: {date_str}"
-                    if not "Time:" in message.message:
-                        time = date.strftime('%H:%M')
-                        msg = msg + f"\nTime: {time}"
-                    #print(f"Changed msesage to: {msg}")                        
-                    await client.edit_message(chat_id,message.id,msg)
-                    counter = counter+1
             
+            async for message in client.iter_messages(entity,reverse=False, limit=100):
+                if message.message:
+                    msg = message.message
+                    if ("Time" not in message.message or "Date" not in message.message):
+                        print(f"No Date found for: {message.id}")
+                        date = check_date(message)
+                        date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
+
+                        if not "Date:" in message.message:
+                            date_str = date.strftime('%Y-%m-%d')
+                            msg = msg + f"\nDate: {date_str}"
+                        if not "Time:" in message.message:
+                            time = date.strftime('%H:%M')
+                            msg = msg + f"\nTime: {time}"
+                        #print(f"Changed msesage to: {msg}")                        
+                    if(msg[0]=="["):
+                        print("Podcast")
+                        msg = edit_podcast(msg)
+                        print("+++\n" + msg)
+                        msg = replace_words(msg).strip()
+
+                    if(msg != str(message.text)):
+                        try:
+                            await client.edit_message(chat_id,message.id,msg)
+                            counter = counter+1
+                        except Exception as e:
+                            print(f"Error: {e}")
         except ValueError as e:
             print(f"Error: {e}")
         return(counter)
