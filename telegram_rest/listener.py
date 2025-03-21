@@ -6,21 +6,54 @@ from os.path import isfile, join
 import re
 import asyncio
 from dotenv import load_dotenv
+import pytz
+import logging
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
-
+timezone = pytz.timezone("Europe/Berlin")
 
 API_ID = os.getenv('API_ID')
 API_HASH = os.getenv('API_HASH')
 name="listener"
 #name="session_read"
 
+logging.basicConfig(filename='/home/malte/telegram-listener-debug.log', level=logging.DEBUG, format='%(asctime)s - %(message)s')
+
 client = TelegramClient(name, API_ID, API_HASH)
 
 client.connect()
 client.start()
 dialogs = client.get_dialogs()
+
+
+def get_date_and_time(message):
+
+    timezone = pytz.timezone("Europe/Berlin")
+
+# Get the current time in that timezone
+    date = datetime.now(timezone)    
+    
+    # if message.message:
+    #     msg_text = message.message
+    #     if re.search("Date",msg_text):
+    #         lines = msg_text.splitlines()
+    #         for line in lines:
+    #             if re.search("^Date",line):
+    #                 date_string=line
+    #                 date_string = re.sub("^Date:","",date_string).strip()
+    #                 date_info = date_string.split("-")
+    #                 date = date.replace(year=int(date_info[0]),month=int(date_info[1]),day=int(date_info[2]))
+    #             if re.search("^Time",line):
+    #                 date_string=line
+    #                 date_string = re.sub("^Time:","",date_string).strip()
+    #                 date_info = date_string.split(":")
+    #                 date = date.replace(hour=int(date_info[0]),minute=int(date_info[1]))
+
+    date = f"Date: {date.strftime('%Y-%m-%d')}\nTime: {date.strftime('%H:%M')}"    
+    return(date)
+
 
 class Template:
     id = ""
@@ -93,11 +126,6 @@ async def handler(event):
     #await event.reply('Hey!')
     text = event.message.text.lower()
     print(text)
-#    if(text.lower()=="placeholder"):
-#        await client.send_file('API channel', 'helper/placeholder.jpg',clear_draft = True)
-    if(text=="edit"):
-        os.system("python3 /home/malte/repos/telegramapi/edit_messages.py")
-        await event.message.delete()
 
     if(re.search("send", text)):
         words = text.split()
@@ -106,51 +134,39 @@ async def handler(event):
         print(info)
         await client.send_message('Helper API', info)
 
-        try:
-            os.system("bash /home/malte/repos/telegramapi/transform.sh " + date_word)
-            await client.send_file('Extra API', 'data.txt',caption = date_word)     
-        except: 
-            info = "Transformation failed"
-            print(info)       
-            await client.send_message('Helper API', info)
-        await event.message.delete()
-
-    if(re.search("spendings", text)):
-        info = "Spendings"
-        print(info)
-        await client.send_message('Helper API', info)
-
-        try:
-            os.system("python3 /home/malte/repos/telegramapi/scripts/test.py")
-            os.system("python3 /home/malte/repos/telegramapi/scripts/visualize_spendings.py")
-
-            await client.send_file('Helper API', 'spendings_pie_charts.pdf',caption = "Spendings")     
-        except: 
-            info = "Transformation failed"
-            print(info)       
-            await client.send_message('Helper API', info)
-        await event.message.delete()
-
-
-
     if(text in send_templates_pictured.keys() or text in send_templates_raw.keys()):
         print("Using templates")
+
+        try:
+                dialogs = await client.get_dialogs()
+                # Print chats
+                for chat in dialogs:
+                    if chat.name=="API channel":
+                        CHANNEL_ID = chat.id
+                        print("Hallo")
+                entity = await client.get_entity(CHANNEL_ID)  # Force fetching the entity
+        except ValueError as e:
+            print(f"Error: {e}")
+            
         try:
             if(text in send_templates_pictured.keys()):
                 t = send_templates_pictured[text]
-                await client.send_file('API channel', 'helper/placeholder.jpg',caption = t.text)
+                caption = t.text + get_date_and_time(event.message)
+                await client.send_file('API channel', 'helper/placeholder.jpg',caption = caption)
                 await trigger_templates(t)
                 await event.message.delete()
             if(text in send_templates_raw.keys()):
                 t = send_templates_raw[text]
-                await client.send_message('API channel', t.text)
-                await trigger_templates(t)
-                await event.message.delete()
-        except:
+                caption = t.text + get_date_and_time(event.message)
+                if not event.message.media:
+                    await client.send_message('API channel', caption)
+                    await trigger_templates(t)
+                    await event.message.delete()
+        except Exception as e:
             client.connect()
             client.start()
             dialogs = client.get_dialogs()
-            await client.send_message('API channel', text)
+            await client.send_message('API channel', e)
 
     if(text=="update templates"):
         #await event.message.delete()
@@ -159,12 +175,7 @@ async def handler(event):
         print(send_templates_pictured)
         await event.message.delete()
 
-
-
-    #
 # Clear all drafts
-
-
 #client.connect()
 for draft in client.get_drafts():
     draft.delete()
@@ -175,7 +186,3 @@ print(send_templates_pictured.keys())
 
 
 client.run_until_disconnected()
-#client.send_message('API channel', "update templates")
-
-
-#client.loop.run_until_complete(main())
