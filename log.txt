@@ -5,4 +5,6 @@ configfile: pyproject.toml
 collected 4 items
 
 tests/test_main.py ...                                                   [ 75%]
-tests/test_save_diary_messages.py 
+tests/test_save_diary_messages.py .                                      [100%]
+
+============================== 4 passed in 8.22s ===============================
