@@ -1,5 +1,6 @@
 from telethon.sync import TelegramClient
 from telethon import events, sync
+# from telethon.errors import ConnectionError
 import os
 from os import listdir
 from os.path import isfile, join
@@ -9,6 +10,7 @@ from dotenv import load_dotenv
 import pytz
 import logging
 from datetime import datetime
+import time
 
 # Load environment variables
 load_dotenv()
@@ -23,9 +25,17 @@ logging.basicConfig(filename='/home/malte/telegram-listener-debug.log', level=lo
 
 client = TelegramClient(name, API_ID, API_HASH)
 
-client.connect()
-client.start()
-dialogs = client.get_dialogs()
+connection_error = True
+while(connection_error):
+    try:
+        client.connect()
+        client.start()
+        dialogs = client.get_dialogs()
+        connection_error = False
+    except ConnectionError:
+        logging.info("Connection Failed. Trying again after 5 seconds")
+        connection_error = True
+        time.sleep(5)
 
 
 def get_date_and_time(message):
@@ -88,7 +98,7 @@ send_templates_pictured = {}
 send_templates_raw = {}
 
 async def update_templates():
-    async for message in client.iter_messages("Templates API",reverse=True, limit=10000000):
+    async for message in client.iter_messages("Templates API",reverse=True, limit=100000):
         t = Template(message)
         if(t.pictured):
             print(t.id)
@@ -185,4 +195,17 @@ print(send_templates_pictured.keys())
 
 
 
-client.run_until_disconnected()
+connection_error = True
+while(connection_error):
+    try:
+        client.connect()
+        client.start()
+        dialogs = client.get_dialogs()
+        client.run_until_disconnected()
+        connection_error = False
+    except ConnectionError:
+        logging.info("Connection Failed. Trying again after 5 seconds")
+        connection_error = True
+        time.sleep(5)
+
+

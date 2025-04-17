@@ -250,7 +250,7 @@ async def get_messages_from_reaction(channel_id,reaction):
 
 
             message_array = []
-            async for message in client.iter_messages(entity,reverse=False, limit=200):
+            async for message in client.iter_messages(entity,reverse=False, limit=2000):
                 if message.reactions:
                     for reaction_instance in message.reactions.results:                          
                         if reaction_instance.reaction.emoticon == reaction:
@@ -394,13 +394,14 @@ def get_messages_reaction():
     """
     data = request.get_json()
     
-    if not data or 'chat_id' not in data:
+    if not data or 'chat_id' not in data or 'reaction' not in data:
         return jsonify({"error": "Invalid request"}), 400
 
     channel_id = int(data['chat_id'])
+    reaction = data['reaction']
     print(channel_id)
 
-    message_ids = loop.run_until_complete(get_messages_from_reaction(channel_id, "👍"))
+    message_ids = loop.run_until_complete(get_messages_from_reaction(channel_id, reaction))
     #message_ids = loop.run_until_complete(get_messages_from_reaction(channel_id, "🔥"))
 
     return jsonify({"status": "Messages found", "message_ids": message_ids}), 200

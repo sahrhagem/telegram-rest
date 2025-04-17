@@ -34,14 +34,14 @@ def client():
     return app.test_client()
 
 def test_get_messages_from_reaction(client):
-    response = client.post('/get_messages_reaction', json={"chat_id": DIARY_CHANNEL})
+    response = client.post('/get_messages_reaction', json={"chat_id": DIARY_CHANNEL, "reaction": "👍"})
     response_json = response.get_json()
     assert response.status_code == 200
     reaction_ids_api = response_json["message_ids"]
     print(f"{reaction_ids_api} ({len(reaction_ids_api)})")
 
 
-    response = client.post('/get_messages_reaction', json={"chat_id": CHANNEL_ID})
+    response = client.post('/get_messages_reaction', json={"chat_id": CHANNEL_ID, "reaction": "👍"})
     response_json = response.get_json()
     assert response.status_code == 200
     reaction_ids_logs = response_json["message_ids"]

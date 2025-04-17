@@ -33,7 +33,7 @@ def test_get_messages_from_reaction(client):
     print(response.get_json())    
 
 def test_get_messages_from_reaction(client):
-    response = client.post('/get_messages_reaction', json={"chat_id": CHANNEL_ID})
+    response = client.post('/get_messages_reaction', json={"chat_id": CHANNEL_ID, "reaction": "👍"})
     assert response.status_code == 200
     print(response.get_json())    
     response_json = response.get_json()
